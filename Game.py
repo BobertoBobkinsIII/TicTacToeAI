@@ -49,7 +49,7 @@ a =  Agent(1)
 b = Agent(2)
 
 while not game.done:
-    aX = a.Policy(game.board)
+    aX = a.Policy(game.board)# I use a for a lot of my variables, its a habit.  In this section of the code, it means the action
     game.step(1,aX)
     forboard = []
     for i in range(9):
