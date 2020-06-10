@@ -1,9 +1,3 @@
-#MAKE GAME
-
-# MAKE POLICY FOR AGENT  that uses the argmax of the random q funtion
-
-# MAKE RANDOM- yes random - Q-learning function
-
 import numpy as np
 import time
 
