@@ -1,91 +1,115 @@
 import numpy as np
-import time
+
+
+games = 2
 
 
 class Game():
     def __init__(self):
-        self.board = np.zeros(shape=(9,))
-        self.done = False
-    def step(self, team, action):
-        self.board[action] = team
-    def check(self, team):
-        done = False
-        if self.board[0] == team and self.board[1] == team and self.board[2] == team:
-            done = True
-        if self.board[3] == team and self.board[4] == team and self.board[5] == team:
-            done = True
-        if self.board[6] == team and self.board[7] == team and self.board[8] == team:
-            done = True
-        if self.board[0] == team and self.board[3] == team and self.board[6] == team:
-            done = True
-        if self.board[1] == team and self.board[4] == team and self.board[7] == team:
-            done = True
-        if self.board[2] == team and self.board[5] == team and self.board[8] == team:
-            done = True
-        if self.board[0] == team and self.board[4] == team and self.board[8] == team:
-            done = True
-        if self.board[2] == team and self.board[4] == team and self.board[6] == team:
-            done = True
-        if self.board[0] == team and self.board[1] == team and self.board[2] == team:
-            done = True
-        if 0 not in self.board:
-            done = True
-        self.done = done
+        self.state = np.zeros(shape=(9,))
+        self.over = False
+    def step(self, action, team):
+        self.state[action] = team
+
+    def check(self, state, team):
+        for i in range(2):
+            team = i + 1
+            done = False
+            if self.state[0] == team and self.state[1] == team and self.state[2] == team:
+                done = True
+            if self.state[3] == team and self.state[4] == team and self.state[5] == team:
+                done = True
+            if self.state[6] == team and self.state[7] == team and self.state[8] == team:
+                done = True
+            if self.state[0] == team and self.state[3] == team and self.state[6] == team:
+                done = True
+            if self.state[1] == team and self.state[4] == team and self.state[7] == team:
+                done = True
+            if self.state[2] == team and self.state[5] == team and self.state[8] == team:
+                done = True
+            if self.state[0] == team and self.state[4] == team and self.state[8] == team:
+                done = True
+            if self.state[2] == team and self.state[4] == team and self.state[6] == team:
+                done = True
+            if self.state[0] == team and self.state[1] == team and self.state[2] == team:
+                done = True
+            if team == 1 and done == True:
+                return True, 1
+            if team == 2 and done == True:
+                return True, 2
+            else:
+                return False, 0
 
 class Agent():
-    def __init__(self,team):
+    def __init__(self, team):
         self.team = team
-    def Policy(self,state):
-        return np.argmax(self.Q(state))
+    def Policy(self, state):
+        actions = self.Q(state, self.team)
+        action = np.argmax(actions)
+        while state[action] != 0:
+            actions[action] = None
+            actions = self.Q(state, self.team)
+            action = np.argmax(actions)
+        return action
 
-    def Q(self, state):
-        x = np.ones(shape=(9,))
-        y = np.empty(shape=(9,))
-        print(x*y)
-        return x*y
+    def Q(self, state, team):
+        x = np.random.uniform(0, 1, size=(9,))
+        return x
 
-game = Game()
-a =  Agent(1)
+
+a = Agent(1)
 b = Agent(2)
 
-while not game.done:
-    aX = a.Policy(game.board)# I use a for a lot of my variables, its a habit.  In this section of the code, it means the action
-    game.step(1,aX)
-    forboard = []
-    for i in range(9):
-        x = game.board[i]
-        if x == 0:
-            forboard.append(' ')
-        if x == 1:
-            forboard.append('X')
-        if x == 2:
-            forboard.append('O')
-    print(f"""
-{forboard[0]}#{forboard[1]}#{forboard[2]}
------
-{forboard[3]}#{forboard[4]}#{forboard[5]}
------
-{forboard[6]}#{forboard[7]}#{forboard[8]}
-        """)
-    time.sleep(3)
-    bX = b.Policy(game.board)
-    game.step(2, bX)
-    forboard = []
-    for i in range(9):
-        x = game.board[i]
-        if x == 0:
-            forboard.append(' ')
-        if x == 1:
-            forboard.append('X')
-        if x == 2:
-            forboard.append('O')
-    print(f"""
-{forboard[0]}#{forboard[1]}#{forboard[2]}
------
-{forboard[3]}#{forboard[4]}#{forboard[5]}
------
-{forboard[6]}#{forboard[7]}#{forboard[8]}
-        """)
-    time.sleep(3)
-    game.check(1)
-    game.check(2)
+
+for i in range(games):
+    game = Game()
+    team = 1
+    winner = 0
+    done = False
+    while not game.over:
+        if team == 1:
+            action = a.Policy(game.state)
+        if team == 2:
+            action = b.Policy(game.state)
+        game.step(action, team)
+        forboard = []
+        for i in range(9):
+            if game.state[i] == 0:
+                forboard.append(' ')
+            if game.state[i] == 1:
+                forboard.append('X')
+            if game.state[i] == 2:
+                forboard.append('O')
+
+
+        print(f"{forboard[0]}|{forboard[1]}|{forboard[2]}")
+        print("######")
+        print(f"{forboard[3]}|{forboard[4]}|{forboard[5]}")
+        print("######")
+        print(f"{forboard[6]}|{forboard[7]}|{forboard[8]}")
+        print("    ")
+        done, teamThatWon = game.check(game.state,1)
+
+        if done == True:
+            winner = teamThatWon
+            AA += 1
+            print("GAME WON BY X")
+            break
+        if done == True and teamThatWon == 0:
+            print("GAME ENDS IN TIE")
+            break
+        done, teamThatWon = game.check(game.state,2)
+
+        if done == True:
+            winner = teamThatWon
+            BA += 1
+            print("GAME WON BY O")
+            break
+        if done == True and teamThatWon == 0:
+            print("GAME ENDS IN TIE")
+            break
+
+        if team == 1:
+            team = 2
+        elif team == 2:
+            team = 1
