@@ -1,115 +1,91 @@
 import numpy as np
-
-
-games = 2
+import time
 
 
 class Game():
     def __init__(self):
-        self.state = np.zeros(shape=(9,))
-        self.over = False
-    def step(self, action, team):
-        self.state[action] = team
+        self.board = np.zeros(shape=(9,))
+    def __str__(self):
+        board = [[' ', 'X', 'O'][idx] for i, idx in enumerate(self.board.astype(int))]
+        str =  ''
+        for i in board:
+            str = str+i
+        return str
+    def step(self, team, position):
+        self.board[position] = team
 
-    def check(self, state, team):
-        for i in range(2):
-            team = i + 1
-            done = False
-            if self.state[0] == team and self.state[1] == team and self.state[2] == team:
-                done = True
-            if self.state[3] == team and self.state[4] == team and self.state[5] == team:
-                done = True
-            if self.state[6] == team and self.state[7] == team and self.state[8] == team:
-                done = True
-            if self.state[0] == team and self.state[3] == team and self.state[6] == team:
-                done = True
-            if self.state[1] == team and self.state[4] == team and self.state[7] == team:
-                done = True
-            if self.state[2] == team and self.state[5] == team and self.state[8] == team:
-                done = True
-            if self.state[0] == team and self.state[4] == team and self.state[8] == team:
-                done = True
-            if self.state[2] == team and self.state[4] == team and self.state[6] == team:
-                done = True
-            if self.state[0] == team and self.state[1] == team and self.state[2] == team:
-                done = True
-            if team == 1 and done == True:
-                return True, 1
-            if team == 2 and done == True:
-                return True, 2
-            else:
-                return False, 0
+
+    def checkWin(self, player):
+        board = self.board.reshape(3,3)
+        p = board == player
+        return (np.any(np.all(p, axis=0))          # |
+              or np.any(np.all(p, axis=1))       # --
+              or np.all(np.diag(p))              # \
+              or np.all(np.diag(np.fliplr(p))))
+    def showBoard(self):
+        board = [[' ', 'X', 'O'][idx] for i, idx in enumerate(self.board.astype(int))]
+        return """\
+ {} | {} | {}
+---+---+---
+ {} | {} | {}
+---+---+---
+ {} | {} | {} """.format(*board)
+
+
+    def giveReward(self, player):
+        if self.checkWin(player):#Won
+            return True, 1
+        elif self.checkWin(player) == False and 0 not in self.board:#Tie
+            return False, 0.5
+        else:#In game
+            return False, -1
+
 
 class Agent():
     def __init__(self, team):
         self.team = team
-    def Policy(self, state):
-        actions = self.Q(state, self.team)
-        action = np.argmax(actions)
-        while state[action] != 0:
-            actions[action] = None
-            actions = self.Q(state, self.team)
-            action = np.argmax(actions)
-        return action
+        self.qTable = {}
+        self.alpha = 0.1
+        self.gamma = .95
+    def policy(self, state):
+        if state not in self.qTable:
+            self.qTable[str(state)] = np.zeros(shape=(9,))
+        x = self.qTable[str(state)]
+        if state.board[np.argmax(x)] != 0:
+            x[np.argmax(x)] = (np.min(x) - 1)
 
-    def Q(self, state, team):
-        x = np.random.uniform(0, 1, size=(9,))
-        return x
-
-
+    def update(self, board_state, action, new_board_state, new_done, new_reward):
+        if str(board_state) not in self.qTable:
+            self.qTable[str(board_state)] = np.zeros(shape=(9,))
+        if new_done:
+            self.qTable[str(board_state)][action] = new_reward
+        else:
+            self.qTable[str(board_state)][action] = ((1 - self.alpha)* self.qTable[str(board_state)][action]+self.alpha * self.gamma * np.max(self.policy(new_board_state)))
 a = Agent(1)
 b = Agent(2)
+for i in range(10):
 
-
-for i in range(games):
     game = Game()
-    team = 1
-    winner = 0
     done = False
-    while not game.over:
-        if team == 1:
-            action = a.Policy(game.state)
-        if team == 2:
-            action = b.Policy(game.state)
-        game.step(action, team)
-        forboard = []
-        for i in range(9):
-            if game.state[i] == 0:
-                forboard.append(' ')
-            if game.state[i] == 1:
-                forboard.append('X')
-            if game.state[i] == 2:
-                forboard.append('O')
-
-
-        print(f"{forboard[0]}|{forboard[1]}|{forboard[2]}")
-        print("######")
-        print(f"{forboard[3]}|{forboard[4]}|{forboard[5]}")
-        print("######")
-        print(f"{forboard[6]}|{forboard[7]}|{forboard[8]}")
-        print("    ")
-        done, teamThatWon = game.check(game.state,1)
-
-        if done == True:
-            winner = teamThatWon
-            AA += 1
-            print("GAME WON BY X")
-            break
-        if done == True and teamThatWon == 0:
-            print("GAME ENDS IN TIE")
-            break
-        done, teamThatWon = game.check(game.state,2)
-
-        if done == True:
-            winner = teamThatWon
-            BA += 1
-            print("GAME WON BY O")
-            break
-        if done == True and teamThatWon == 0:
-            print("GAME ENDS IN TIE")
-            break
-
-        if team == 1:
-            team = 2
-        elif team == 2:
-            team = 1
+    a.qTable[str(game)] = np.zeros(shape=(9,))
+    b.qTable[str(game)] = np.zeros(shape=(9,))
+    print(a.qTable)
+    while not done:
+        #if i+1 % 1 == 0:
+        print(game.showBoard())
+        time.sleep(2)
+        oldState = game
+        aMove = a.policy(game)
+        game.step(1, aMove)
+        done, reward = game.giveReward(1)
+        print(str(oldState))
+        a.update(str(oldState), aMove, str(game), done, reward)
+        if game != done:
+            if i+1 % 1 == 0:
+                print(game.showBoard())
+                time.sleep(2)
+            oldState = game.board
+            bmove = b.policy(game)
+            game.step(2, bmove)
+            done, reward = game.giveReward(2)
+            a.update(oldState, bmove, game, done, reward)
