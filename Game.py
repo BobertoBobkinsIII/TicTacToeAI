@@ -1,5 +1,9 @@
 import numpy as np
 import time
+import random
+
+games = 2
+
 
 
 class Game():
@@ -22,7 +26,7 @@ class Game():
               or np.any(np.all(p, axis=1))       # --
               or np.all(np.diag(p))              # \
               or np.all(np.diag(np.fliplr(p))))
-    def showBoard(self, game):
+    def showBoard(self):
         board = [[' ', 'X', 'O'][idx] for i, idx in enumerate(self.board.astype(int))]
         return """\
 GAME:{}
@@ -39,7 +43,7 @@ GAME:{}
         if self.checkWin(player):#Won
             return True, 1
         elif self.checkWin(player) == False and 0 not in self.board:#Tie
-            return False, 0.5
+            return True, 0.5
         else:#In game
             return False, -1
 
@@ -50,52 +54,56 @@ class Agent():
         self.qTable = {}
         self.alpha = 0.1
         self.gamma = .95
-    def policy(self, state):
+    def Policy(self, state):
         if str(state) not in self.qTable:
-            self.qTable[str(state)] =  np.zeros(shape=(9,))
+            self.qTable[str(state)] = np.zeros(shape=(9,))
         x = self.qTable[str(state)]
-        if state.board[np.argmax(x)] != 0:
-            x[np.argmax(x)] = ((np.min(x))-1)
-        while state.board[np.argmax(x)] !=  0:
-            x[np.argmax(x)] = ((np.min(x))-1)
-        return np.argmax(x)
+        action = np.argmax(x)
+        if state.board[action] != 0:
+            x[int(np.argmax(x))] = int((np.min(x)-1))
+            action = np.argmax(x)
+        while state.board[action] != 0:
+            x[int(np.argmax(x))] = int((np.min(x)-1))
+            action = np.argmax(x)
+        return x
+    def UpdateQ(self, oldState, action, Newstate, done, reward):
+        print(str(oldState))
+        print(str(Newstate))
 
 
-    def update(self, board_state, action, new_board_state, new_done, new_reward):
-        if str(board_state) not in self.qTable:
-            self.qTable[str(board_state)] = np.zeros(shape=(9,))
-        if new_done:
-            self.qTable[str(board_state)][action] = new_reward
+        if str(Newstate) not in self.qTable:
+            self.qTable[str(Newstate)] =  np.zeros(shape=(9,))
+        if done:
+            self.qTable[str(oldState)][action] = reward
         else:
-            self.qTable[str(board_state)][action] = ((1 - self.alpha)* self.qTable[str(board_state)][action]+self.alpha * self.gamma * np.max(self.policy(new_board_state)))
+            self.qTable[str(Newstate)] = ((1-self.alpha) * self.qTable[str(oldState)][action] + self.alpha * self.gamma * np.max(self.Policy(Newstate)))
+
+
+game = Game()
 a = Agent(1)
 b = Agent(2)
-a.qTable[str(np.zeros(shape=(9,)))] = np.zeros(shape=(9,))
-b.qTable[str(np.zeros(shape=(9,)))] = np.zeros(shape=(9,))
-for i in range(500):
+a.qTable[str(game)] = np.zeros(shape=(9,))
+b.qTable[str(game)] = np.zeros(shape=(9,))
 
+for i in range(games):
     game = Game()
     done = False
-    if i % 10 == 0:
-        print(b.qTable)
     while not done:
-        if i % 20 == 0:
-            print(game.showBoard(i+1))
-            time.sleep(2)
-        oldState = game
-        aMove = a.policy(oldState)
-        game.step(1, aMove)
+        print(game.showBoard())
+        time.sleep(1)
+        oldstate = str(game)
+        print(oldstate)
+        move = np.argmax(a.Policy(game))
+        game.step(1, move)
         done, reward = game.giveReward(1)
-        a.update(oldState, aMove, game, done, reward)
+        a.UpdateQ(oldstate, move, game, done, reward)
         if not done:
-            if i % 20 == 0:
-                print(game.showBoard(i+1))
-                time.sleep(2)
-            oldState = game.board
-            bmove = b.policy(game)
-            game.step(2, bmove)
+            print(game.showBoard())
+            time.sleep(1)
+            oldstate = game
+            move = np.argmax(b.Policy(game))
+            game.step(2, move)
             done, reward = game.giveReward(2)
-            a.update(oldState, bmove, game, done, reward)
-        if i % 20 == 0:
-            print(game.showBoard(i+1))
-            time.sleep(2)
+            b.UpdateQ(oldstate, move, game, done, reward)
+    print(game.showBoard())
+    print(b.qTable)
