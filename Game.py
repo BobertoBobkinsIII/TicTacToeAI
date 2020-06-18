@@ -2,7 +2,7 @@ import numpy as np
 import time
 import random
 
-games = 2
+games = 20
 
 
 
@@ -58,26 +58,30 @@ class Agent():
         if str(state) not in self.qTable:
             self.qTable[str(state)] = np.zeros(shape=(9,))
         x = self.qTable[str(state)]
+        if x.shape != (9,):
+            self.qTable[str(state)] = np.zeros(shape=(9,))
+        x = self.qTable[str(state)]
         action = np.argmax(x)
         if state.board[action] != 0:
-            x[int(np.argmax(x))] = int((np.min(x)-1))
+            x[np.argmax(x)] =  -8
             action = np.argmax(x)
         while state.board[action] != 0:
-            x[int(np.argmax(x))] = int((np.min(x)-1))
+            x[np.argmax(x)] = -8
             action = np.argmax(x)
         return x
     def UpdateQ(self, oldState, action, Newstate, done, reward):
-        print(str(oldState))
-        print(str(Newstate))
-
-
         if str(Newstate) not in self.qTable:
-            self.qTable[str(Newstate)] =  np.zeros(shape=(9,))
+            self.qTable[str(Newstate)] = np.zeros(shape=(9,))
+        if self.qTable[str(Newstate)].shape != (9,):
+            self.qTable[str(Newstate)] = np.zeros(shape=(9,))
+        if self.qTable[str(oldState)].shape != (9,):
+            self.qTable[str(oldState)] = np.zeros(shape=(9,))
         if done:
             self.qTable[str(oldState)][action] = reward
+            print(f"Q::{self.qTable[str(oldState)]}::::")
         else:
             self.qTable[str(Newstate)] = ((1-self.alpha) * self.qTable[str(oldState)][action] + self.alpha * self.gamma * np.max(self.Policy(Newstate)))
-
+        print(self.qTable[str(Newstate)])
 
 game = Game()
 a = Agent(1)
