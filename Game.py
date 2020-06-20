@@ -20,6 +20,7 @@ class Game():
 
 
     def checkWin(self, player):
+        print("CHECKING WIN")
         board = self.board.reshape(3,3)
         p = board == player
         return (np.any(np.all(p, axis=0))          # |
@@ -40,6 +41,7 @@ GAME:{}
 
 
     def giveReward(self, player):
+
         if self.checkWin(player):#Won
             return True, 1
         elif self.checkWin(player) == False and 0 not in self.board:#Tie
@@ -72,16 +74,10 @@ class Agent():
     def UpdateQ(self, oldState, action, Newstate, done, reward):
         if str(Newstate) not in self.qTable:
             self.qTable[str(Newstate)] = np.zeros(shape=(9,))
-        if self.qTable[str(Newstate)].shape != (9,):
-            self.qTable[str(Newstate)] = np.zeros(shape=(9,))
-        if self.qTable[str(oldState)].shape != (9,):
-            self.qTable[str(oldState)] = np.zeros(shape=(9,))
         if done:
             self.qTable[str(oldState)][action] = reward
-            print(f"Q::{self.qTable[str(oldState)]}::::")
         else:
-            self.qTable[str(Newstate)] = ((1-self.alpha) * self.qTable[str(oldState)][action] + self.alpha * self.gamma * np.max(self.Policy(Newstate)))
-        print(self.qTable[str(Newstate)])
+            self.qTable[str(Newstate)][action] = ((1-self.alpha) * self.qTable[str(oldState)][action] + self.alpha * self.gamma * np.max(self.Policy(Newstate)))
 
 game = Game()
 a = Agent(1)
@@ -92,22 +88,49 @@ b.qTable[str(game)] = np.zeros(shape=(9,))
 for i in range(games):
     game = Game()
     done = False
+    Amove = 1
+    Bmove = 1      # old  action  Newstate done reward
+    transitions = [[None,None,None,None,None],[None,None,None,None,None]]
+    print(game.showBoard())
     while not done:
+        if Amove != 1:
+            print("UPDATING Q")
+            done, reward = game.giveReward(1)
+            transitions[0][2] = game
+            transitions[0][3] = done
+            transitions[0][4] = reward
+            a.UpdateQ(transitions[0][0],transitions[0][1], transitions[0][2], transitions[0][3], transitions[0][4])
+        transitions[0][0] = game
+        move = np.argmax(a.Policy(game))
+        transitions[0][1] = move
+        game.step(1, move)
         print(game.showBoard())
         time.sleep(1)
-        oldstate = str(game)
-        print(oldstate)
-        move = np.argmax(a.Policy(game))
-        game.step(1, move)
-        done, reward = game.giveReward(1)
-        a.UpdateQ(oldstate, move, game, done, reward)
+        Amove += 1
+        if done:
+            print("GAME IS DONE")
+            transitions[1][2] = game
+            a.UpdateQ(transitions[0][0],transitions[0][1], transitions[0][2], transitions[0][3], transitions[0][4])
+            b.UpdateQ(transitions[1][0],transitions[1][1], transitions[1][2], transitions[1][3], transitions[1][4])
         if not done:
+            if Bmove != 1:
+                print("UPDATING Q")
+                done, reward = game.giveReward(2)
+                transitions[1][2] = game
+                transitions[1][3] = done
+                transitions[1][4] = reward
+                b.UpdateQ(transitions[1][0],transitions[1][1], transitions[1][2], transitions[1][3], transitions[1][4])
+            transitions[1][0] = game
+            move = np.argmax(b.Policy(game))
+            transitions[1][1] = move
+            game.step(2, move)
             print(game.showBoard())
             time.sleep(1)
-            oldstate = game
-            move = np.argmax(b.Policy(game))
-            game.step(2, move)
-            done, reward = game.giveReward(2)
-            b.UpdateQ(oldstate, move, game, done, reward)
-    print(game.showBoard())
+            Bmove += 1
+            if done:
+                print("GAME IS DONE")
+                transitions[0][2] = game
+                a.UpdateQ(transitions[0][0],transitions[0][1], transitions[0][2], transitions[0][3], transitions[0][4])
+                b.UpdateQ(transitions[1][0],transitions[1][1], transitions[1][2], transitions[1][3], transitions[1][4])
+
     print(b.qTable)
